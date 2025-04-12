@@ -1,0 +1,58 @@
+version: "3.7"
+services:
+
+  gssapi-php-fpm:
+    image: dockerregister.aglic.dz/gssapi-php-fpm:latest
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: unless-stopped
+    env_file:
+      - ./gssapi.env
+    volumes:
+      - /justificatifs_gss:/var/www/storage/upload/pieces_jointes
+    networks:
+      - gssapi_network
+
+
+  gssapi-nginx:
+    image: dockerregister.aglic.dz/gssapi-nginx:latest
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    restart: unless-stopped
+    ports:
+      - 8000:80
+          
+    networks:
+      - gssapi_network
+
+  gssfront:
+    image: dockerregister.aglic.dz/gssfront:latest
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    env_file:
+      - ./gssfront.env
+
+  
+
+
+networks:
+  gssapi_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1442
+
+
+
+
+# commmande a execute pour le  deployement :
+# docker-compose build app
+# docker-compose up -d
+# docker-compose exec app composer install
+# docker-compose exec app php artisan key:generate
+

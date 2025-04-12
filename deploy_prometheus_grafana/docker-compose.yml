@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"  # Expose Prometheus UI
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_data:/prometheus   
+    extra_hosts:
+        - "gss_local.aglic.dz:192.168.20.105"
+        - "gss_adex.aglic.dz:192.168.30.143"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION=7d
+      - GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION=30d
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+networks:
+      monitoring:
+        driver: bridge
+
+  

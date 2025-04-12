@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  jenkins:
+    build:
+      context: .  # Use the current directory as the context for the build (where your Dockerfile is located)
+      dockerfile: Dockerfile  # Optionally specify the Dockerfile if it’s named something other than 'Dockerfile'
+    container_name: jenkins 
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+      - 50000:50000  # for agent connections
+    extra_hosts:
+        - "git.aglic.dz:192.168.20.236"
+        - "gss_local.aglic.dz:192.168.20.105"
+        - "gss_adex.aglic.dz:192.168.30.143" 
+        - "dockerregister.aglic.dz:192.168.20.108"
+    
+
+
+      
+
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /root/.ssh:/root/.ssh:ro
+      - /var/run/docker.sock:/var/run/docker.sock 
+    environment:
+      - GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+    user: root  # allows Jenkins to install plugins, use Docker socket, etc.
+
+volumes:
+  jenkins_home:

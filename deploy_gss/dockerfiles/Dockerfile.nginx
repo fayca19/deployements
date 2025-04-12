@@ -1,0 +1,5 @@
+FROM nginx:1.17-alpine
+COPY nginx/gssAPI.conf /etc/nginx/conf.d/default.conf
+COPY composer.json composer.lock /var/www/
+COPY . /var/www
+COPY app/Http /var/www/app/Http

@@ -1,0 +1,58 @@
+FROM php:8.1-fpm
+
+
+# Install system dependencies
+RUN apt-get update
+RUN apt-get install -y \
+    bash \
+    curl \
+    vim \
+    libonig-dev \
+    libxml2-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    jpegoptim optipng pngquant gifsicle \
+    libgd-dev \
+    zip \
+    unzip \
+    zlib1g-dev \
+    libpng-dev \ 
+    libjpeg-dev \
+    ca-certificates
+
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl 
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create system user to run Composer and Arcdtisan Commands
+RUN groupadd -g 2525 gss
+RUN useradd -G www-data,gss -u 1010 -d /home/gssuser gssuser
+RUN mkdir -p /home/gssuser/.composer && \
+    chown -R gssuser:gssuser /home/gssuser 
+
+COPY ./SSL/curl.cainfo.ini /usr/local/etc/php/conf.d
+
+COPY ./php/max_load_file.ini /usr/local/etc/php/conf.d
+
+
+
+
+ 
+COPY . /var/www
+WORKDIR /var/www
+RUN composer install 
+COPY app/Http /var/www/app/Http
+RUN chown -R gssuser:gss /var/www/storage
+USER gssuser
+
+
+
+
+
+

@@ -1,0 +1,52 @@
+pipeline {
+    agent none
+
+    environment {
+        REGISTRY   = 'registry.aglic.dz'
+        IMAGE_NAME_01 = 'gssapi-nginx'
+        IMAGE_NAME_02 = 'gssapi-php-fpm'
+        SERVICE_01    = 'aglic-gss_gssapi-nginx'
+        SERVICE_02    = 'aglic-gss_gssapi-php-fpm'
+        SWARM_MANAGER_HOST = '192.168.20.109'
+    }
+    stages {
+
+        stage('Checkout') {
+            agent { label 'agent_01' }
+            steps {
+                git branch: 'master',
+                    url: 'https://gitea.aglic.dz/AGLIC/gssAPI.git',
+                    credentialsId: 'gitea-https'
+            }
+        }
+
+        stage('Build & Push Image') {
+            agent { label 'agent_01' }
+            steps {
+                script {
+                    env.IMAGE_TAG = "1.0.${env.BUILD_NUMBER}"
+                }
+
+                sh '''
+                    docker build -f dockerfiles/Dockerfile.nginx -t ${REGISTRY}/${IMAGE_NAME_01}:${IMAGE_TAG} .
+                    docker build -f dockerfiles/Dockerfile.php-fpm -t ${REGISTRY}/${IMAGE_NAME_02}:${IMAGE_TAG} .
+                    docker push ${REGISTRY}/${IMAGE_NAME_01}:${IMAGE_TAG}
+                    docker push ${REGISTRY}/${IMAGE_NAME_02}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Deploy to Docker Swarm') {
+            agent { label 'agent_01' }
+            steps {
+                
+                sh """
+                    ssh -o StrictHostKeyChecking=no jenkins@${SWARM_MANAGER_HOST} \\
+                    "docker service update --with-registry-auth --force --image ${REGISTRY}/${IMAGE_NAME_01}:${IMAGE_TAG} --update-parallelism 1 --update-delay 3s ${SERVICE_01} && \
+                     docker service update --with-registry-auth --force --image ${REGISTRY}/${IMAGE_NAME_02}:${IMAGE_TAG} --update-parallelism 1 --update-delay 3s ${SERVICE_02}"
+                """
+          
+            }
+        }
+    }
+}

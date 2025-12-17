@@ -1,0 +1,31 @@
+FROM jenkins/inbound-agent:latest
+
+USER root
+
+# Install docker CLI, git, ssh client
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    git \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js, npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+  && apt-get update \
+  && apt-get install -y nodejs
+
+
+
+# Set the Docker group GID to match host
+ARG DOCKER_GID=996
+
+# Find existing group with the host GID
+RUN existing_group=$(getent group $DOCKER_GID | cut -d: -f1) || true \
+    && if [ -z "$existing_group" ]; then \
+         groupadd -g $DOCKER_GID docker; \
+       else \
+         echo "Group with GID $DOCKER_GID already exists: $existing_group"; \
+       fi \
+    && usermod -aG $existing_group jenkins
+
+USER jenkins
